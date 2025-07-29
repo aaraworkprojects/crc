@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modbus RTU CRC Calculator</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        input { width: 60px; margin-right: 10px; }
+        #result { margin-top: 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h2>Modbus RTU Frame + CRC Generator</h2>
+    <label>High Byte (hex): 0x</label>
+    <input type="text" id="highByte" value="FE"><br><br>
+    <label>Low Byte (hex): 0x</label>
+    <input type="text" id="lowByte" value="28"><br><br>
+    <button onclick="generateFrame()">Generate</button>
+
+    <div id="result"></div>
+
+    <script>
+        function calculateCRC(data) {
+            let crc = 0xFFFF;
+            for (let pos = 0; pos < data.length; pos++) {
+                crc ^= data[pos];
+                for (let i = 0; i < 8; i++) {
+                    if (crc & 0x0001) {
+                        crc = (crc >> 1) ^ 0xA001;
+                    } else {
+                        crc >>= 1;
+                    }
+                }
+            }
+            return crc;
+        }
+
+        function generateFrame() {
+            const highByte = parseInt(document.getElementById("highByte").value, 16);
+            const lowByte = parseInt(document.getElementById("lowByte").value, 16);
+
+            const frame = [
+                0x01, // Slave ID
+                0x03, // Function Code
+                highByte,
+                lowByte,
+                0x00, // Number of registers (high byte)
+                0x01  // Number of registers (low byte)
+            ];
+
+            const crc = calculateCRC(frame);
+            frame.push(crc & 0xFF);        // CRC Low byte
+            frame.push((crc >> 8) & 0xFF); // CRC High byte
+
+            const hexFrame = frame.map(byte => byte.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+            document.getElementById("result").innerText = "Full Modbus RTU Frame: " + hexFrame;
+        }
+    </script>
+</body>
+</html>
+_
